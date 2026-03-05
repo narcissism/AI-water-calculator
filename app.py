@@ -31,36 +31,6 @@ OPENAI_CLIENT_ID = os.getenv('OPENAI_CLIENT_ID', '')
 OPENAI_CLIENT_SECRET = os.getenv('OPENAI_CLIENT_SECRET', '')
 OPENAI_REDIRECT_URI = os.getenv('OPENAI_REDIRECT_URI', 'http://localhost:5000/api/auth/openai/callback')
 
-# Initialize database
-def init_db():
-    conn = sqlite3.connect('water_calc.db')
-    c = conn.cursor()
-    
-    # Users table
-    c.execute('''CREATE TABLE IF NOT EXISTS users
-                 (id INTEGER PRIMARY KEY, email TEXT UNIQUE, openai_token TEXT, 
-                  created_at TIMESTAMP, last_sync TIMESTAMP)''')
-    
-    # Usage data table
-    c.execute('''CREATE TABLE IF NOT EXISTS usage_data
-                 (id INTEGER PRIMARY KEY, user_id INTEGER, date TEXT, 
-                  tokens_used INTEGER, requests INTEGER, model TEXT,
-                  task_type TEXT, FOREIGN KEY(user_id) REFERENCES users(id))''')
-    
-    # Data centers table
-    c.execute('''CREATE TABLE IF NOT EXISTS data_centers
-                 (id INTEGER PRIMARY KEY, name TEXT, city TEXT, region TEXT, 
-                  country TEXT, latitude REAL, longitude REAL, 
-                  cooling_tech TEXT, water_intensity REAL, status TEXT)''')
-    
-    conn.commit()
-    conn.close()
-
-# Initialize database and data centers on startup
-with app.app_context():
-    init_db()
-    init_data_centers()
-
 # Initialize data centers with real data
 def init_data_centers():
     conn = sqlite3.connect('water_calc.db')
@@ -89,6 +59,48 @@ def init_data_centers():
         conn.commit()
     
     conn.close()
+
+# Initialize database
+def init_db():
+    conn = sqlite3.connect('water_calc.db')
+    c = conn.cursor()
+    
+    # Users table
+    c.execute('''CREATE TABLE IF NOT EXISTS users
+                 (id INTEGER PRIMARY KEY, email TEXT UNIQUE, openai_token TEXT, 
+                  created_at TIMESTAMP, last_sync TIMESTAMP)''')
+    
+    # Usage data table
+    c.execute('''CREATE TABLE IF NOT EXISTS usage_data
+                 (id INTEGER PRIMARY KEY, user_id INTEGER, date TEXT, 
+                  tokens_used INTEGER, requests INTEGER, model TEXT,
+                  task_type TEXT, FOREIGN KEY(user_id) REFERENCES users(id))''')
+    
+    # Data centers table
+    c.execute('''CREATE TABLE IF NOT EXISTS data_centers
+                 (id INTEGER PRIMARY KEY, name TEXT, city TEXT, region TEXT, 
+                  country TEXT, latitude REAL, longitude REAL, 
+                  cooling_tech TEXT, water_intensity REAL, status TEXT)''')
+    
+    conn.commit()
+    conn.close()
+
+# Initialize database before first request
+db_initialized = False
+
+@app.before_request
+def initialize_db_before_first_request():
+    """Initialize database on first request - this ensures it happens AFTER Render starts"""
+    global db_initialized
+    if db_initialized:
+        return
+    
+    try:
+        init_db()
+        init_data_centers()
+        db_initialized = True
+    except Exception as e:
+        print(f"Database initialization error: {e}")
 
 # Water calculation functions
 class WaterCalculator:
