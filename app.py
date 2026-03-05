@@ -12,12 +12,23 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
-CORS(app, supports_credentials=True)
+
+# Better secret key handling
+SECRET_KEY = os.getenv('SECRET_KEY', 'dev-secret-key-12345')
+app.secret_key = SECRET_KEY
+
+# CORS configuration - allow all origins for development
+CORS(app, supports_credentials=True, resources={
+    r"/api/*": {
+        "origins": ["*"],
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type"]
+    }
+})
 
 # Configuration
-OPENAI_CLIENT_ID = os.getenv('OPENAI_CLIENT_ID')
-OPENAI_CLIENT_SECRET = os.getenv('OPENAI_CLIENT_SECRET')
+OPENAI_CLIENT_ID = os.getenv('OPENAI_CLIENT_ID', '')
+OPENAI_CLIENT_SECRET = os.getenv('OPENAI_CLIENT_SECRET', '')
 OPENAI_REDIRECT_URI = os.getenv('OPENAI_REDIRECT_URI', 'http://localhost:5000/api/auth/openai/callback')
 
 # Initialize database
@@ -44,6 +55,11 @@ def init_db():
     
     conn.commit()
     conn.close()
+
+# Initialize database and data centers on startup
+with app.app_context():
+    init_db()
+    init_data_centers()
 
 # Initialize data centers with real data
 def init_data_centers():
@@ -396,6 +412,14 @@ def get_nearest_datacenters():
     return jsonify(centers[:10]), 200  # Return top 10 nearest
 
 if __name__ == '__main__':
-    init_db()
-    init_data_centers()
-    app.run(debug=True, port=5000)
+    # Get port from environment (Render sets this) or use 5000
+    port = int(os.environ.get('PORT', 5000))
+    
+    # Determine if running in production
+    is_production = os.getenv('FLASK_ENV') == 'production'
+    
+    app.run(
+        host='0.0.0.0',  # Listen on all interfaces
+        port=port,
+        debug=not is_production  # Debug off in production
+    )
