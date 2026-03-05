@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { MapPin, Droplets, Zap, Activity, LogOut, Settings } from 'lucide-react';
 
 // Get API base URL from environment or use default
@@ -13,7 +13,6 @@ export default function WaterCalculatorApp() {
   const [apiKey, setApiKey] = useState('');
   const [userId, setUserId] = useState(null);
   const [userData, setUserData] = useState(null);
-  const [dataCenters, setDataCenters] = useState([]);
   const [nearestCenters, setNearestCenters] = useState([]);
   const [userLocation, setUserLocation] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -42,6 +41,7 @@ export default function WaterCalculatorApp() {
     if (userLocation && userId) {
       fetchNearestCenters();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userLocation, userId]);
 
   const handleLogin = async (e) => {
@@ -135,12 +135,6 @@ export default function WaterCalculatorApp() {
       liters: userData.water_usage.water_liters,
       gallons: userData.water_usage.water_gallons,
     },
-  ] : [];
-
-  const waterContextData = userData ? [
-    { name: 'Showers', value: userData.water_context.bathtub_showers, color: '#3b82f6' },
-    { name: 'Bottles', value: Math.min(userData.water_context.bottles, 1000), color: '#10b981' },
-    { name: 'Pools', value: userData.water_context.swimming_pools * 1000, color: '#f59e0b' },
   ] : [];
 
   if (appState === 'login') {
