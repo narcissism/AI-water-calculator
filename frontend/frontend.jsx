@@ -2,7 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { MapPin, Droplets, Zap, Activity, LogOut, Settings } from 'lucide-react';
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000';
+// Get API base URL from environment or use default
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL ? 
+  process.env.REACT_APP_API_BASE_URL.replace(/\/$/, '') :  // Remove trailing slash if present
+  'http://localhost:5000';
 
 export default function WaterCalculatorApp() {
   const [appState, setAppState] = useState('login'); // login, dashboard, connecting
@@ -15,6 +18,12 @@ export default function WaterCalculatorApp() {
   const [userLocation, setUserLocation] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Debug: Log API base URL on mount
+  useEffect(() => {
+    console.log('🔗 API_BASE_URL:', API_BASE_URL);
+    console.log('📍 NODE_ENV:', process.env.NODE_ENV);
+  }, []);
 
   // Get user's geolocation
   useEffect(() => {
@@ -48,11 +57,16 @@ export default function WaterCalculatorApp() {
 
     try {
       // Authenticate user
-      const authRes = await fetch(`${API_BASE_URL}/api/auth/openai/callback`, {
+      const authUrl = `${API_BASE_URL}/api/auth/openai/callback`;
+      console.log('📤 Sending auth request to:', authUrl);
+      
+      const authRes = await fetch(authUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, api_key: apiKey }),
       });
+      
+      console.log('📥 Auth response status:', authRes.status);
 
       if (!authRes.ok) throw new Error('Authentication failed');
 
